@@ -1,0 +1,135 @@
+@import utils.DateHelper
+@import controllers.EventController
+
+@main {
+    <script>
+    $(document).ready(function() {
+        
+        // FULLCALENDAR
+        $('#calendar').fullCalendar({
+            header: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'month,agendaWeek,agendaDay'
+            },
+            timeFormat: 'H(:mm)',
+            defaultDate: moment(),
+            eventLimit: true, // allow "more" link when too many events
+            editable: true,
+            selectable: true,
+            selectHelper: true,
+            select: function(start, end) {
+                bootbox.confirm("<form class='form-horizontal' id='infos' action=''>\
+                    <div class='row'>\
+                        <div class='col-lg-12'><h3>Neues Event hinzufügen</h3></div>\
+                    </div>\
+                    <div class='input-group'>\
+                        <span class='input-group-addon'>Titel</span>\
+                        <input type='text' class='form-control' id='eventTitle' placeholder='Titel des Eintrags'>\
+                    </div>\
+                    <div class='input-group'>\
+                        <span class='input-group-addon'>Benutzer</span>\
+                        <input type='text' class='form-control' id='eventUser' placeholder='Benutzer des Fahrzeuges'>\
+                    </div>\
+                    <div class='input-group'>\
+                        <span class='input-group-addon'>Fahrzeug</span>\
+                        <select class='form-control' id='eventCar'>\
+                            <option>Fox</option>\
+                            <option>Polo</option>\
+                            <option>Audi</option>\
+                        </select>\
+                    </div>\
+                    <div class='input-group'>\
+                        <span class='input-group-addon'>Hinweis</span>\
+                        <textarea class='form-control' rows='3' id='eventDescription'></textarea>\
+                    </div>\
+                    </form>", function(result) {
+                    
+                        if(result) {
+                            var title = document.getElementById("eventTitle").value;
+                            var user = document.getElementById("eventUser").value;
+                            var car = $("#eventCar :selected").text();
+                            var description = document.getElementById("eventDescription").value;
+                        
+                            myJsRoutes.controllers.Application.addEvent(title,user,car,description,start).ajax({
+                                success : function(data) {                              
+                                    var event = {
+                                        title: title,
+                                        className: car,
+                                        description: description,
+                                        start: start,
+                                        end: end
+                                    };
+                                    
+                                    $('#calendar').fullCalendar('renderEvent', event, true);
+                                }
+                            });
+                            $('#calendar').fullCalendar('unselect');
+                        }
+                });
+            }, 
+            events: [
+            @for((event, index) <- EventController.events.zipWithIndex) {
+                @Html("{")
+                    title: '@event.title', 
+                    start: '@event.date',
+                    className: '@event.car',
+                    description: '@event.description'
+                @Html("}") @if(index<(EventController.events.length-1)) { @Html(",") }
+            }    // HERE
+            ],
+            eventRender: function(event, element) {
+                element.find('.fc-title').append("<br/>" + event.description);
+            },
+            eventClick: function(event) {
+                if (event.url) {
+                    window.open(event.url);
+                    return false;
+                }
+            },
+            eventMouseover: function(calEvent, jsEvent, view) {
+                //alert("123");
+                //alert('Event: ' + calEvent.title);
+                //alert('Coordinates: ' + jsEvent.pageX + ',' + jsEvent.pageY);
+                //alert('View: ' + view.name);
+
+                // change the border color just for fun
+                //$(this).css('border-color', 'red');
+
+            }
+   
+        });
+
+        // EVENT LISTENER
+        document.addEventListener("mouseover", hoverDaysEffect, true);
+    });
+      
+    // HOVER DAY FIELDS - CHANGE BGCOLOR/HIGHLIGHT
+    // MOUSEOVER - MOUSEOUT - DATA FIELDS
+    function hoverDaysEffect() {
+        $(".fc-day,.fc-day-number").on({
+            // MOUSEENTER
+            mouseenter: function () {
+                // EVERY TD WITH DATA-DATE EQUALS HOVER:DATE
+                $('td[data-date='+$(this).attr("data-date")+']').each(function() {
+                    // CHANGE BACKGROUND-COLOR AND CURSOR ITEM
+                    $(this).css("background-color", "rgba(189,218,3,1");
+                    $(this).css("cursor", "help");
+                }); // END
+            },
+            // MOUSELEAVE
+            mouseleave: function () {
+                // EVERY TD WITH DATA-DATE EQUALS HOVER:DATE
+                $('td[data-date='+$(this).attr("data-date")+']').each(function() {
+                    // CHANGE BACKGROUND-COLOR AND CURSOR ITEM
+                    $(this).css("background-color", "");
+                    $(this).css("cursor", "");
+                }); // END
+            }
+        });
+    }
+
+    </script>
+    
+    <div id="calendar"></div>
+}
